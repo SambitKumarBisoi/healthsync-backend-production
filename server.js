@@ -21,10 +21,25 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-/* ================= MIDDLEWARE ================= */
+/* ================= CORS ================= */
+import cors from "cors";
+
+const allowedOrigins = [
+  "https://healthsync-frontend-rosy.vercel.app",
+  "http://localhost:5173"
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
