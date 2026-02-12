@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import userRoutes from "./routes/userRoutes.js";
 import { Server } from "socket.io";
 import protectedRoutes from "./routes/protectedRoutes.js";
-import authRoutes from "./routes/authroutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
 import sendEmail from "./utils/sendEmail.js";
 import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
