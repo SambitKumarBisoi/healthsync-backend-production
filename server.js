@@ -22,7 +22,6 @@ const app = express();
 const server = http.createServer(app);
 
 /* ================= CORS ================= */
-import cors from "cors";
 
 const allowedOrigins = [
   "https://healthsync-frontend-rosy.vercel.app",
