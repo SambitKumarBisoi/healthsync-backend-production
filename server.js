@@ -12,6 +12,7 @@ import sendEmail from "./utils/sendEmail.js";
 import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import testEmailRoute from "./routes/testEmailRoute.js";
 
 
 /* ================= ENV CONFIG ================= */
@@ -134,3 +135,5 @@ server.listen(PORT, () => {
 /* ================= PAYMENT ROUTES ================= */
 app.use("/api/payments", paymentRoutes);
 
+/* ================= TEST EMAIL ROUTE ================= */
+app.use("/api", testEmailRoute);
