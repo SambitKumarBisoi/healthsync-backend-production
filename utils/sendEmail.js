@@ -1,7 +1,11 @@
 import nodemailer from "nodemailer";
+console.log("===== EMAIL DEBUG =====");
 console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("BREVO HOST:", process.env.BREVO_SMTP_HOST);
-console.log("BREVO USER:", process.env.BREVO_SMTP_USER);
+console.log("BREVO_SMTP_HOST:", process.env.BREVO_SMTP_HOST);
+console.log("BREVO_SMTP_PORT:", process.env.BREVO_SMTP_PORT);
+console.log("BREVO_SMTP_USER:", process.env.BREVO_SMTP_USER);
+console.log("BREVO_SMTP_PASS exists:", !!process.env.BREVO_SMTP_PASS);
+console.log("=======================");
 
 const sendEmail = async ({ to, subject, html }) => {
   let transporter;
