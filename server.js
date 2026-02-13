@@ -7,12 +7,11 @@ import userRoutes from "./routes/userRoutes.js";
 import { Server } from "socket.io";
 import protectedRoutes from "./routes/protectedRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import testRoutes from "./routes/testRoutes.js";
 import sendEmail from "./utils/sendEmail.js";
 import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-import testEmailRoute from "./routes/testEmailRoute.js";
+
 
 
 /* ================= ENV CONFIG ================= */
@@ -32,18 +31,25 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like Postman)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      // Allow Vercel domains dynamically
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
       }
+
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
 );
 
+
+/*===== BODY PARSER =====*/
 app.use(express.json());
 app.use("/api/doctor", doctorAvailabilityRoutes);
 app.use("/api/appointments", appointmentRoutes);
@@ -58,8 +64,6 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 
 /* ================= TEST ROUTES ================= */
-app.use("/api/test", testRoutes);
-
 /* ================= REAL EMAIL TEST ROUTE ================= */
 /* HIT: http://localhost:5000/api/test-email */
 /*app.get("/api/test-email", async (req, res) => {
@@ -134,6 +138,3 @@ server.listen(PORT, () => {
 
 /* ================= PAYMENT ROUTES ================= */
 app.use("/api/payments", paymentRoutes);
-
-/* ================= TEST EMAIL ROUTE ================= */
-app.use("/api", testEmailRoute);
