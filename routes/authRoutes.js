@@ -16,8 +16,22 @@ router.post("/register", registerUser);
 // Verify email
 router.get("/verify-email", verifyEmail);
 
+// Optional: Informational route for browser access
+router.get("/login", (req, res) => {
+  res.json({
+    message: "Login endpoint. Use POST request with email and password."
+  });
+});
+
 // Login user
 router.post("/login", loginUser);
+
+// Forgot password (informational)
+router.get("/forgot-password", (req, res) => {
+  res.json({
+    message: "Forgot password endpoint. Use POST with email."
+  });
+});
 
 // Forgot password (send email)
 router.post("/forgot-password", forgotPassword);

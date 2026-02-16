@@ -138,3 +138,21 @@ server.listen(PORT, () => {
 
 /* ================= PAYMENT ROUTES ================= */
 app.use("/api/payments", paymentRoutes);
+
+/* ================= 404 HANDLER ================= */
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: "API route not found"
+  });
+});
+
+/* ================= GLOBAL ERROR HANDLER ================= */
+app.use((err, req, res, next) => {
+  console.error("Server Error:", err.message);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal server error"
+  });
+});
