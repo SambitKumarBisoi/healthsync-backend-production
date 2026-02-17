@@ -17,6 +17,9 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 /* ================= ENV CONFIG ================= */
 dotenv.config();
 
+/* === LOGGING === */
+console.log("BASE_URL:", process.env.BASE_URL);
+
 /* ================= APP SETUP ================= */
 const app = express();
 const server = http.createServer(app);
