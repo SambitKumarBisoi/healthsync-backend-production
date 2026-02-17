@@ -33,8 +33,9 @@ router.get("/forgot-password", (req, res) => {
   });
 });
 
-// Forgot password (send email)
+/* Forgot password (send email)
 router.post("/forgot-password", forgotPassword);
+*/
 
 // Reset password (ACTUAL reset)
 router.post("/reset-password", resetPassword);

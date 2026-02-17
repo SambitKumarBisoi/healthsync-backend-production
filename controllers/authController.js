@@ -44,6 +44,7 @@ const user = await User.create({
 
     const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
 
+
     await sendEmail({
       to: user.email,
       subject: "Verify your HealthSync account",
@@ -72,6 +73,7 @@ const user = await User.create({
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
+    console.log("Verification token received:", req.query.token);
 
     if (!token) {
       return res.status(400).send("Invalid verification link");
