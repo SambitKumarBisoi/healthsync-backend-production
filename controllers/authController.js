@@ -41,8 +41,10 @@ const user = await User.create({
   emailVerified: false,
 });
 
+console.log("REGISTER HIT ON:", process.env.BASE_URL);
 
-    const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
+const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
+
 
 
     await sendEmail({
