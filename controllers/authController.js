@@ -9,9 +9,9 @@ import generateToken from "../utils/generateToken.js";
  */
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone } = req.body;
+    const { name, email, password, role, phone, securityPin } = req.body;
 
-    if (!name || !email || !password || !phone) {
+    if (!name || !email || !password || !phone || !securityPin) {
       return res.status(400).json({
         message: "All required fields must be provided",
       });
@@ -29,13 +29,30 @@ export const registerUser = async (req, res) => {
 
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
     const emailVerificationTokenExpires = Date.now() + 15 * 60 * 1000;
+const selectedRole = role ? role.toLowerCase() : "patient";
+
+if (selectedRole === "doctor") {
+  if (securityPin !== process.env.DOCTOR_PIN) {
+    return res.status(403).json({
+      message: "Invalid Doctor security PIN",
+    });
+  }
+}
+
+if (selectedRole === "admin") {
+  if (securityPin !== process.env.ADMIN_PIN) {
+    return res.status(403).json({
+      message: "Invalid Admin security PIN",
+    });
+  }
+}
 
 const user = await User.create({
   name,
   email,
   password: hashedPassword,
-  role: role ? role.toLowerCase() : "patient",
-  phone, // ✅ IMPORTANT
+  role: selectedRole,
+  phone,
   emailVerificationToken,
   emailVerificationTokenExpires,
   emailVerified: false,
