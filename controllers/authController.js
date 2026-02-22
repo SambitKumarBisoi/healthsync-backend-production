@@ -3,6 +3,8 @@ import crypto from "crypto";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
 import generateToken from "../utils/generateToken.js";
+import { captchaStore } from "../utils/captcha.js";
+
 
 /**
  * REGISTER USER
@@ -162,7 +164,7 @@ export const verifyEmail = async (req, res) => {
  */
 export const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, captchaId, captchaAnswer } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -170,7 +172,39 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    // ===== CAPTCHA VALIDATION =====
+    if (!captchaId || !captchaAnswer) {
+      return res.status(400).json({
+        message: "Captcha is required",
+      });
+    }
+
+    const captchaEntry = captchaStore[captchaId];
+
+    if (!captchaEntry) {
+      return res.status(400).json({
+        message: "Invalid captcha session",
+      });
+    }
+
+    if (Date.now() > captchaEntry.expiresAt) {
+      delete captchaStore[captchaId];
+      return res.status(400).json({
+        message: "Captcha expired",
+      });
+    }
+
+    if (captchaEntry.answer !== captchaAnswer) {
+      return res.status(400).json({
+        message: "Incorrect captcha",
+      });
+    }
+
+    delete captchaStore[captchaId];
+    // ===== END CAPTCHA =====
+
     const user = await User.findOne({ email });
+
     if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
@@ -184,6 +218,7 @@ export const loginUser = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(401).json({
         message: "Invalid email or password",
@@ -202,6 +237,7 @@ export const loginUser = async (req, res) => {
         role: user.role,
       },
     });
+
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({
@@ -209,7 +245,6 @@ export const loginUser = async (req, res) => {
     });
   }
 };
-
   /**
  * FORGOT PASSWORD
  */

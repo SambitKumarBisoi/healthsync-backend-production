@@ -6,6 +6,7 @@ import {
   forgotPassword,
   resetPassword,
 } from "../controllers/authController.js";
+import { generateCaptcha } from "../utils/captcha.js";
 
 // Create a new user
 const router = express.Router();
@@ -21,6 +22,12 @@ router.get("/login", (req, res) => {
   res.json({
     message: "Login endpoint. Use POST request with email and password."
   });
+});
+
+// Generate captcha
+router.get("/captcha", (req, res) => {
+  const captcha = generateCaptcha();
+  res.json(captcha);
 });
 
 // Login user
