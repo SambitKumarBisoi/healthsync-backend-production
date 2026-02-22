@@ -245,7 +245,8 @@ export const loginUser = async (req, res) => {
     });
   }
 };
-  /**
+
+/**
  * FORGOT PASSWORD
  */
 export const forgotPassword = async (req, res) => {
