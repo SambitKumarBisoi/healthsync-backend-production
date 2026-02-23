@@ -52,3 +52,27 @@ export const updateMyProfile = async (req, res) => {
     });
   }
 };
+/**
+ * GET ALL VERIFIED DOCTORS
+ * Access: Patient only
+ */
+export const getDoctors = async (req, res) => {
+  try {
+    const doctors = await User.find({
+      role: "doctor",
+      emailVerified: true,
+    }).select("name email");
+
+    return res.status(200).json({
+      success: true,
+      doctors,
+    });
+
+  } catch (error) {
+    console.error("Get doctors error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching doctors",
+    });
+  }
+};
