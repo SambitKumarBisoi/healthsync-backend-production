@@ -3,21 +3,17 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import mongoose from "mongoose";
-import userRoutes from "./routes/userRoutes.js";
 import { Server } from "socket.io";
+
+import userRoutes from "./routes/userRoutes.js";
 import protectedRoutes from "./routes/protectedRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import sendEmail from "./utils/sendEmail.js";
 import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
-
-
 /* ================= ENV CONFIG ================= */
 dotenv.config();
-
-/* === LOGGING === */
 console.log("BASE_URL:", process.env.BASE_URL);
 
 /* ================= APP SETUP ================= */
@@ -25,7 +21,6 @@ const app = express();
 const server = http.createServer(app);
 
 /* ================= CORS ================= */
-
 const allowedOrigins = [
   "https://healthsync-frontend-rosy.vercel.app",
   "http://localhost:5173"
@@ -34,10 +29,8 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow requests with no origin (like Postman)
       if (!origin) return callback(null, true);
 
-      // Allow Vercel domains dynamically
       if (
         allowedOrigins.includes(origin) ||
         origin.endsWith(".vercel.app")
@@ -51,53 +44,64 @@ app.use(
   })
 );
 
+/* ================= SAFE BODY PARSER ================= */
 
-/*===== BODY PARSER =====*/
-app.use(express.json());
-app.use("/api/doctor", doctorAvailabilityRoutes);
-app.use("/api/appointments", appointmentRoutes);
+/*
+Fix for:
+Unexpected end of JSON input
+when empty body sent with Content-Type: application/json
+*/
+app.use(
+  express.json({
+    strict: false,
+  })
+);
 
+/* Catch JSON parsing errors safely */
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    console.error("Invalid JSON received");
+    return res.status(400).json({
+      success: false,
+      message: "Invalid JSON format",
+    });
+  }
+  next();
+});
 
-/* ================= BASIC ROUTE ================= */
+/* ================= ROUTES ================= */
+
 app.get("/", (req, res) => {
   res.send("HealthSync Backend Running");
 });
 
-/* ================= AUTH ROUTES ================= */
+/* Auth Routes */
 app.use("/api/auth", authRoutes);
 
-/* ================= TEST ROUTES ================= */
-/* ================= REAL EMAIL TEST ROUTE ================= */
-/* HIT: http://localhost:5000/api/test-email */
-/*app.get("/api/test-email", async (req, res) => {
-  try {
-    await sendEmail({
-      to: "subhamku7735@gmail.com", // ✅ PUT YOUR REAL GMAIL HERE
-      subject: "HealthSync – Real Email Test",
-      html: "<h2>If you received this, Brevo SMTP is working 🎉</h2>",
-    });
+/* Doctor Routes */
+app.use("/api/doctor", doctorAvailabilityRoutes);
 
-    res.json({
-      success: true,
-      message: "Email request sent. Check inbox or spam.",
-    });
-  } catch (error) {
-    console.error("Email test error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-*/
+/* Appointment Routes */
+app.use("/api/appointments", appointmentRoutes);
+
+/* Payment Routes */
+app.use("/api/payments", paymentRoutes);
+
+/* User Routes */
+app.use("/api/users", userRoutes);
+
+/* Protected Routes */
+app.use("/api/protected", protectedRoutes);
 
 /* ================= SOCKET.IO ================= */
+
 const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
-app.set("io", io); // ✅ FIX: make io available to controllers
+
+app.set("io", io);
 
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
@@ -114,6 +118,7 @@ io.on("connection", (socket) => {
 });
 
 /* ================= DATABASE ================= */
+
 const connectDB = async () => {
   try {
     console.log("Connecting to MongoDB Atlas...");
@@ -127,35 +132,30 @@ const connectDB = async () => {
 
 connectDB();
 
-/* ================= USER ROUTES ================= */
-app.use("/api/users", userRoutes);
-
-/* ================= PROTECTED ROUTES ================= */
-app.use("/api/protected", protectedRoutes);
-
-/* ================= SERVER START ================= */
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-/* ================= PAYMENT ROUTES ================= */
-app.use("/api/payments", paymentRoutes);
-
 /* ================= 404 HANDLER ================= */
-app.use((req, res, next) => {
+
+app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "API route not found"
+    message: "API route not found",
   });
 });
 
 /* ================= GLOBAL ERROR HANDLER ================= */
+
 app.use((err, req, res, next) => {
-  console.error("Server Error:", err.message);
+  console.error("FULL ERROR:", err);
 
   res.status(500).json({
     success: false,
-    message: "Internal server error"
+    message: err.message || "Internal server error",
   });
+});
+
+/* ================= SERVER START ================= */
+
+const PORT = process.env.PORT || 5000;
+
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
