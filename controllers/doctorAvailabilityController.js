@@ -89,37 +89,27 @@ export const getMyAvailability = async (req, res) => {
  */
 export const getAvailabilityByDoctor = async (req, res) => {
   try {
-    const { doctorId } = req.params;
+    console.log("======== DEBUG START ========");
+    console.log("Doctor ID received:", req.params.doctorId);
+    console.log("User from token:", req.user);
 
-    const availabilityData = await DoctorAvailability.find({
-      doctor: doctorId,
+    const availability = await DoctorAvailability.find({
+      doctor: req.params.doctorId,
       isActive: true,
     }).sort({ dayOfWeek: 1 });
 
-    // Generate slots for each availability entry
-    const availabilityWithSlots = availabilityData.map((item) => {
-      const slots = generateSlots(
-        item.startTime,
-        item.endTime,
-        item.slotDuration
-      );
+    console.log("Availability from DB:", availability);
 
-      return {
-        ...item.toObject(),
-        slots,
-      };
-    });
-
-    res.json({
+    return res.status(200).json({
       success: true,
-      availability: availabilityWithSlots,
+      availability,
     });
 
   } catch (error) {
-    console.error("Get doctor availability error:", error);
-    res.status(500).json({
+    console.error("REAL ERROR:", error);
+    return res.status(500).json({
       success: false,
-      message: "Server error while fetching doctor availability",
+      message: error.message,
     });
   }
 };
