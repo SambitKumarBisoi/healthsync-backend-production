@@ -69,16 +69,25 @@ export const getMyAvailability = async (req, res) => {
       isActive: true,
     }).sort({ dayOfWeek: 1 });
 
-    res.json({
+    const availabilityWithSlots = availability.map((item) => ({
+      ...item.toObject(),
+      slots: generateSlots(
+        item.startTime,
+        item.endTime,
+        item.slotDuration
+      ),
+    }));
+
+    res.status(200).json({
       success: true,
-      availability,
+      availability: availabilityWithSlots,
     });
 
   } catch (error) {
     console.error("Get my availability error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while fetching availability",
+      message: error.message,
     });
   }
 };
