@@ -89,25 +89,30 @@ export const getMyAvailability = async (req, res) => {
  */
 export const getAvailabilityByDoctor = async (req, res) => {
   try {
-    console.log("======== DEBUG START ========");
-    console.log("Doctor ID received:", req.params.doctorId);
-    console.log("User from token:", req.user);
+    const { doctorId } = req.params;
 
     const availability = await DoctorAvailability.find({
-      doctor: req.params.doctorId,
+      doctor: doctorId,
       isActive: true,
     }).sort({ dayOfWeek: 1 });
 
-    console.log("Availability from DB:", availability);
+    const availabilityWithSlots = availability.map((item) => ({
+      ...item.toObject(),
+      slots: generateSlots(
+        item.startTime,
+        item.endTime,
+        item.slotDuration
+      ),
+    }));
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      availability,
+      availability: availabilityWithSlots,
     });
 
   } catch (error) {
-    console.error("REAL ERROR:", error);
-    return res.status(500).json({
+    console.error("Availability fetch error:", error);
+    res.status(500).json({
       success: false,
       message: error.message,
     });
