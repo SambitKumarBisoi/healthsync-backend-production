@@ -4,6 +4,7 @@ import {
   getMyAvailability,
   getAvailabilityByDoctor,
   updateAvailability,
+  disableSlot,
   disableAvailability,
 } from "../controllers/doctorAvailabilityController.js";
 import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
@@ -43,6 +44,18 @@ router.put(
 /**
  * Doctor disables availability
  */
+
+router.patch(
+  "/availability/:id/disable",
+  protect,
+  authorizeRoles("doctor"),
+  disableAvailability
+);
+
+/**
+ * Doctor disables specific slot
+ */
+
 router.patch(
   "/availability/:id/disable-slot",
   protect,
