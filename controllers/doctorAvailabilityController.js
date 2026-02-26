@@ -204,10 +204,9 @@ export const updateAvailability = async (req, res) => {
 /**
  * DISABLE SPECIFIC SLOT
  */
-export const disableSlot = async (req, res) => {
+export const disableAvailability = async (req, res) => {
   try {
     const { id } = req.params;
-    const { slot } = req.body;
 
     const availability = await DoctorAvailability.findOne({
       _id: id,
@@ -221,19 +220,16 @@ export const disableSlot = async (req, res) => {
       });
     }
 
-    if (!availability.disabledSlots.includes(slot)) {
-      availability.disabledSlots.push(slot);
-    }
-
+    availability.isActive = false;
     await availability.save();
 
     res.status(200).json({
       success: true,
-      message: "Slot disabled successfully",
+      message: "Availability disabled successfully",
     });
 
   } catch (error) {
-    console.error("Disable slot error:", error);
+    console.error("Disable availability error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
