@@ -44,10 +44,10 @@ router.put(
  * Doctor disables availability
  */
 router.patch(
-  "/availability/:id/disable",
+  "/availability/:id/disable-slot",
   protect,
   authorizeRoles("doctor"),
-  disableAvailability
+  disableSlot
 );
 
 /**

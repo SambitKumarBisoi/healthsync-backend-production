@@ -3,7 +3,6 @@ import generateSlots from "../utils/generateSlots.js";
 
 /**
  * CREATE DOCTOR AVAILABILITY
- * Doctor only
  */
 export const createAvailability = async (req, res) => {
   try {
@@ -11,7 +10,6 @@ export const createAvailability = async (req, res) => {
 
     const allowedDurations = [10, 15, 20, 30, 45, 60];
 
-    // Required fields validation
     if (!dayOfWeek || !startTime || !endTime) {
       return res.status(400).json({
         success: false,
@@ -19,7 +17,6 @@ export const createAvailability = async (req, res) => {
       });
     }
 
-    // Slot duration validation
     if (!allowedDurations.includes(Number(slotDuration))) {
       return res.status(400).json({
         success: false,
@@ -27,7 +24,6 @@ export const createAvailability = async (req, res) => {
       });
     }
 
-    // Time validation
     if (startTime >= endTime) {
       return res.status(400).json({
         success: false,
@@ -53,7 +49,7 @@ export const createAvailability = async (req, res) => {
     console.error("Create availability error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while creating availability",
+      message: error.message,
     });
   }
 };
@@ -69,14 +65,22 @@ export const getMyAvailability = async (req, res) => {
       isActive: true,
     }).sort({ dayOfWeek: 1 });
 
-    const availabilityWithSlots = availability.map((item) => ({
-      ...item.toObject(),
-      slots: generateSlots(
+    const availabilityWithSlots = availability.map((item) => {
+      const allSlots = generateSlots(
         item.startTime,
         item.endTime,
         item.slotDuration
-      ),
-    }));
+      );
+
+      const activeSlots = allSlots.filter(
+        (slot) => !item.disabledSlots.includes(slot)
+      );
+
+      return {
+        ...item.toObject(),
+        slots: activeSlots,
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -105,14 +109,22 @@ export const getAvailabilityByDoctor = async (req, res) => {
       isActive: true,
     }).sort({ dayOfWeek: 1 });
 
-    const availabilityWithSlots = availability.map((item) => ({
-      ...item.toObject(),
-      slots: generateSlots(
+    const availabilityWithSlots = availability.map((item) => {
+      const allSlots = generateSlots(
         item.startTime,
         item.endTime,
         item.slotDuration
-      ),
-    }));
+      );
+
+      const activeSlots = allSlots.filter(
+        (slot) => !item.disabledSlots.includes(slot)
+      );
+
+      return {
+        ...item.toObject(),
+        slots: activeSlots,
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -131,7 +143,6 @@ export const getAvailabilityByDoctor = async (req, res) => {
 
 /**
  * UPDATE DOCTOR AVAILABILITY
- * Doctor only
  */
 export const updateAvailability = async (req, res) => {
   try {
@@ -152,7 +163,6 @@ export const updateAvailability = async (req, res) => {
       });
     }
 
-    // Optional validations if fields provided
     if (slotDuration && !allowedDurations.includes(Number(slotDuration))) {
       return res.status(400).json({
         success: false,
@@ -185,19 +195,19 @@ export const updateAvailability = async (req, res) => {
     console.error("Update availability error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while updating availability",
+      message: error.message,
     });
   }
 };
 
 
 /**
- * DISABLE DOCTOR AVAILABILITY (Soft delete)
- * Doctor only
+ * DISABLE SPECIFIC SLOT
  */
-export const disableAvailability = async (req, res) => {
+export const disableSlot = async (req, res) => {
   try {
     const { id } = req.params;
+    const { slot } = req.body;
 
     const availability = await DoctorAvailability.findOne({
       _id: id,
@@ -211,19 +221,22 @@ export const disableAvailability = async (req, res) => {
       });
     }
 
-    availability.isActive = false;
+    if (!availability.disabledSlots.includes(slot)) {
+      availability.disabledSlots.push(slot);
+    }
+
     await availability.save();
 
-    res.json({
+    res.status(200).json({
       success: true,
-      message: "Availability disabled successfully",
+      message: "Slot disabled successfully",
     });
 
   } catch (error) {
-    console.error("Disable availability error:", error);
+    console.error("Disable slot error:", error);
     res.status(500).json({
       success: false,
-      message: "Server error while disabling availability",
+      message: error.message,
     });
   }
 };

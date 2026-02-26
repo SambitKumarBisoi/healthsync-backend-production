@@ -42,6 +42,11 @@ const doctorAvailabilitySchema = new mongoose.Schema(
       required: true,
       default: 30,
     },
+    // disable
+    disabledSlots: {
+  type: [String],
+  default: [],
+},
 
     // Whether this availability is active
     isActive: {
