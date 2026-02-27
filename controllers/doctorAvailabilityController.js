@@ -149,8 +149,6 @@ export const updateAvailability = async (req, res) => {
     const { id } = req.params;
     const { dayOfWeek, startTime, endTime, slotDuration } = req.body;
 
-    const allowedDurations = [10, 15, 20, 30, 45, 60];
-
     const availability = await DoctorAvailability.findOne({
       _id: id,
       doctor: req.user._id,
@@ -160,20 +158,6 @@ export const updateAvailability = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Availability not found",
-      });
-    }
-
-    if (slotDuration && !allowedDurations.includes(Number(slotDuration))) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid slot duration selected",
-      });
-    }
-
-    if (startTime && endTime && startTime >= endTime) {
-      return res.status(400).json({
-        success: false,
-        message: "End time must be after start time",
       });
     }
 
@@ -202,7 +186,7 @@ export const updateAvailability = async (req, res) => {
 
 
 /**
- * DISABLE SPECIFIC SLOT
+ * DISABLE ENTIRE AVAILABILITY
  */
 export const disableAvailability = async (req, res) => {
   try {
@@ -230,6 +214,47 @@ export const disableAvailability = async (req, res) => {
 
   } catch (error) {
     console.error("Disable availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+/**
+ * DISABLE SPECIFIC SLOT
+ */
+export const disableSlot = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { slot } = req.body;
+
+    const availability = await DoctorAvailability.findOne({
+      _id: id,
+      doctor: req.user._id,
+    });
+
+    if (!availability) {
+      return res.status(404).json({
+        success: false,
+        message: "Availability not found",
+      });
+    }
+
+    if (!availability.disabledSlots.includes(slot)) {
+      availability.disabledSlots.push(slot);
+    }
+
+    await availability.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Slot disabled successfully",
+    });
+
+  } catch (error) {
+    console.error("Disable slot error:", error);
     res.status(500).json({
       success: false,
       message: error.message,
