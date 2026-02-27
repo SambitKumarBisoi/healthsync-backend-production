@@ -100,15 +100,44 @@ export const getMyAvailability = async (req, res) => {
 /**
  * GET AVAILABILITY BY DOCTOR ID (Patient)
  */
+import Appointment from "../models/Appointment.js";
+
 export const getAvailabilityByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
+    const { date } = req.query;
 
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date query parameter is required",
+      });
+    }
+
+    const selectedDate = new Date(date);
+    const dayName = selectedDate.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
+
+    // 1️⃣ Get availability for that weekday
     const availability = await DoctorAvailability.find({
       doctor: doctorId,
+      dayOfWeek: dayName,
       isActive: true,
-    }).sort({ dayOfWeek: 1 });
+    });
 
+    // 2️⃣ Get already booked appointments for that date
+    const bookedAppointments = await Appointment.find({
+      doctor: doctorId,
+      appointmentDate: selectedDate,
+      status: { $ne: "CANCELLED" },
+    });
+
+    const bookedSlots = bookedAppointments.map(
+      (appt) => appt.slotTime
+    );
+
+    // 3️⃣ Generate slots and remove disabled + booked
     const availabilityWithSlots = availability.map((item) => {
       const allSlots = generateSlots(
         item.startTime,
@@ -116,13 +145,15 @@ export const getAvailabilityByDoctor = async (req, res) => {
         item.slotDuration
       );
 
-      const activeSlots = allSlots.filter(
-        (slot) => !item.disabledSlots.includes(slot)
+      const filteredSlots = allSlots.filter(
+        (slot) =>
+          !item.disabledSlots.includes(slot) &&
+          !bookedSlots.includes(slot)
       );
 
       return {
         ...item.toObject(),
-        slots: activeSlots,
+        slots: filteredSlots,
       };
     });
 
