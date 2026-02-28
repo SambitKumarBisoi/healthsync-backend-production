@@ -8,6 +8,7 @@ import {
   disableAvailability,
 } from "../controllers/doctorAvailabilityController.js";
 import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
+import { allowOnlyActiveDoctor } from "../middlewares/doctorStatusMiddleware.js";
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post(
   "/availability",
   protect,
   authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
   createAvailability
 );
 
@@ -28,6 +30,7 @@ router.get(
   "/availability",
   protect,
   authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
   getMyAvailability
 );
 
@@ -38,6 +41,7 @@ router.put(
   "/availability/:id",
   protect,
   authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
   updateAvailability
 );
 
@@ -49,6 +53,7 @@ router.patch(
   "/availability/:id/disable",
   protect,
   authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
   disableAvailability
 );
 
@@ -60,17 +65,19 @@ router.patch(
   "/availability/:id/disable-slot",
   protect,
   authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
   disableSlot
 );
 
 /**
  * Patient views doctor availability
  */
-router.get(
-  "/doctors/:doctorId/availability",
+router.post(
+  "/availability",
   protect,
-  authorizeRoles("patient"),
-  getAvailabilityByDoctor
+  authorizeRoles("doctor"),
+  allowOnlyActiveDoctor,
+  createAvailability
 );
 
 export default router;
