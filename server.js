@@ -8,6 +8,7 @@ import { Server } from "socket.io";
 import userRoutes from "./routes/userRoutes.js";
 import protectedRoutes from "./routes/protectedRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
@@ -92,6 +93,9 @@ app.use("/api/users", userRoutes);
 
 /* Protected Routes */
 app.use("/api/protected", protectedRoutes);
+
+/** Admin Routes */
+app.use("/api/admin", adminRoutes);
 
 /* ================= SOCKET.IO ================= */
 
