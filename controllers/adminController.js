@@ -42,13 +42,15 @@ export const approveDoctor = async (req, res) => {
       });
     }
 
-    doctor.accountStatus = "ACTIVE";
-    await doctor.save();
+    await User.findByIdAndUpdate(
+      id,
+      { accountStatus: "ACTIVE" },
+      { new: true }
+    );
 
     res.status(200).json({
       success: true,
       message: "Doctor approved successfully",
-      doctor,
     });
   } catch (error) {
     console.error("Approve doctor error:", error);
@@ -78,13 +80,15 @@ export const rejectDoctor = async (req, res) => {
       });
     }
 
-    doctor.accountStatus = "REJECTED";
-    await doctor.save();
+    await User.findByIdAndUpdate(
+      id,
+      { accountStatus: "REJECTED" },
+      { new: true }
+    );
 
     res.status(200).json({
       success: true,
       message: "Doctor rejected",
-      doctor,
     });
   } catch (error) {
     console.error("Reject doctor error:", error);
@@ -114,13 +118,15 @@ export const suspendDoctor = async (req, res) => {
       });
     }
 
-    doctor.accountStatus = "SUSPENDED";
-    await doctor.save();
+    await User.findByIdAndUpdate(
+      id,
+      { accountStatus: "SUSPENDED" },
+      { new: true }
+    );
 
     res.status(200).json({
       success: true,
       message: "Doctor suspended",
-      doctor,
     });
   } catch (error) {
     console.error("Suspend doctor error:", error);
