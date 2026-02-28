@@ -35,12 +35,21 @@ const userSchema = new mongoose.Schema(
   default: "patient",
 },
 
-    // account status
-    status: {
-      type: String,
-      enum: ["PENDING", "ACTIVE", "BLOCKED"],
-      default: "PENDING",
-    },
+// Doctor lifecycle status (applies only if role = doctor)
+accountStatus: {
+  type: String,
+  enum: [
+    "PENDING_VERIFICATION",
+    "ACTIVE",
+    "REJECTED",
+    "SUSPENDED"
+  ],
+  default: function () {
+    return this.role === "doctor"
+      ? "PENDING_VERIFICATION"
+      : "ACTIVE";
+  },
+},
 
     // security
     captchaFails: {
