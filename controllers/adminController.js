@@ -1,4 +1,57 @@
 import User from "../models/User.js";
+import Appointment from "../models/Appointment.js";
+
+/**
+ * ADMIN DASHBOARD SUMMARY
+ */
+export const getAdminDashboard = async (req, res) => {
+  try {
+    const totalDoctors = await User.countDocuments({ role: "doctor" });
+    const activeDoctors = await User.countDocuments({
+      role: "doctor",
+      accountStatus: "ACTIVE",
+    });
+    const pendingDoctors = await User.countDocuments({
+      role: "doctor",
+      accountStatus: "PENDING_VERIFICATION",
+    });
+    const suspendedDoctors = await User.countDocuments({
+      role: "doctor",
+      accountStatus: "SUSPENDED",
+    });
+
+    const totalAppointments = await Appointment.countDocuments();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayAppointments = await Appointment.countDocuments({
+      appointmentDate: { $gte: today },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        doctors: {
+          total: totalDoctors,
+          active: activeDoctors,
+          pending: pendingDoctors,
+          suspended: suspendedDoctors,
+        },
+        appointments: {
+          total: totalAppointments,
+          today: todayAppointments,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Admin dashboard error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 /**
  * GET ALL DOCTORS

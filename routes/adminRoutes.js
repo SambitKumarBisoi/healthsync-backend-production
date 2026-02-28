@@ -5,10 +5,20 @@ import {
   rejectDoctor,
   suspendDoctor,
 } from "../controllers/adminController.js";
-
 import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
+import { getAdminDashboard } from "../controllers/adminController.js";
 
 const router = express.Router();
+
+/*admin routes */
+router.get(
+  "/dashboard",
+  protect,
+  authorizeRoles("admin"),
+  getAdminDashboard
+);
+
+
 
 /**
  * GET ALL DOCTORS
