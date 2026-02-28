@@ -24,28 +24,75 @@ const isOverlap = (a, b, buffer) =>
 export const getAvailableSlots = async (req, res) => {
   try {
     const { doctorId, date } = req.query;
+
     if (!doctorId || !date) {
-      return res.status(400).json({ success: false });
+      return res.status(400).json({
+        success: false,
+        message: "DoctorId and date are required",
+      });
     }
 
-    const dayOfWeek = new Date(date).toLocaleDateString("en-US", {
+    const selectedDate = new Date(date);
+    const dayOfWeek = selectedDate.toLocaleDateString("en-US", {
       weekday: "long",
     });
 
+    // 1️⃣ Fetch availability for that weekday
     const availability = await DoctorAvailability.find({
       doctor: doctorId,
       dayOfWeek,
       isActive: true,
     });
 
-    let slots = [];
-    availability.forEach((a) => {
-      slots.push(...generateSlots(a.startTime, a.endTime, a.slotDuration));
+    if (!availability.length) {
+      return res.json({
+        success: true,
+        date,
+        dayOfWeek,
+        slots: [],
+      });
+    }
+
+    // 2️⃣ Fetch already booked appointments
+    const bookedAppointments = await Appointment.find({
+      doctor: doctorId,
+      appointmentDate: selectedDate,
+      status: { $ne: "CANCELLED" },
     });
 
-    res.json({ success: true, date, dayOfWeek, slots });
+    const bookedSlots = bookedAppointments.map((a) => a.slotTime);
+
+    let availableSlots = [];
+
+    availability.forEach((a) => {
+      const allSlots = generateSlots(
+        a.startTime,
+        a.endTime,
+        a.slotDuration
+      );
+
+      const filteredSlots = allSlots.filter(
+        (slot) =>
+          !a.disabledSlots.includes(slot) &&
+          !bookedSlots.includes(slot)
+      );
+
+      availableSlots.push(...filteredSlots);
+    });
+
+    res.json({
+      success: true,
+      date,
+      dayOfWeek,
+      slots: availableSlots,
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false });
+    console.error("Get available slots error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch available slots",
+    });
   }
 };
 
@@ -55,23 +102,49 @@ export const getAvailableSlots = async (req, res) => {
 export const bookAppointment = async (req, res) => {
   try {
     const { doctorId, appointmentDate, slotTime } = req.body;
+
     if (!doctorId || !appointmentDate || !slotTime) {
-      return res.status(400).json({ success: false });
+      return res.status(400).json({
+        success: false,
+        message: "Doctor, date and slot are required",
+      });
     }
 
-    const dayOfWeek = new Date(appointmentDate).toLocaleDateString("en-US", {
+    const selectedDate = new Date(appointmentDate);
+
+    const dayOfWeek = selectedDate.toLocaleDateString("en-US", {
       weekday: "long",
     });
 
+    // 1️⃣ Fetch availability
     const availability = await DoctorAvailability.find({
       doctor: doctorId,
       dayOfWeek,
       isActive: true,
     });
 
+    if (!availability.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor not available on selected day",
+      });
+    }
+
+    // 2️⃣ Generate valid slots (exclude disabled)
     let validSlots = [];
+
     availability.forEach((a) => {
-      validSlots.push(...generateSlots(a.startTime, a.endTime, a.slotDuration));
+      const allSlots = generateSlots(
+        a.startTime,
+        a.endTime,
+        a.slotDuration
+      );
+
+      const filtered = allSlots.filter(
+        (slot) => !a.disabledSlots.includes(slot)
+      );
+
+      validSlots.push(...filtered);
     });
 
     if (!validSlots.includes(slotTime)) {
@@ -81,9 +154,10 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
+    // 3️⃣ Prevent double booking (doctor side)
     const doctorConflict = await Appointment.findOne({
       doctor: doctorId,
-      appointmentDate,
+      appointmentDate: selectedDate,
       slotTime,
       status: { $ne: "CANCELLED" },
     });
@@ -95,13 +169,15 @@ export const bookAppointment = async (req, res) => {
       });
     }
 
+    // 4️⃣ Prevent patient overlapping booking
     const patientAppointments = await Appointment.find({
       patient: req.user._id,
-      appointmentDate,
+      appointmentDate: selectedDate,
       status: { $ne: "CANCELLED" },
     });
 
     const newSlot = parseSlot(slotTime);
+
     for (let appt of patientAppointments) {
       if (isOverlap(newSlot, parseSlot(appt.slotTime), BUFFER_MINUTES)) {
         return res.status(409).json({
@@ -111,34 +187,48 @@ export const bookAppointment = async (req, res) => {
       }
     }
 
+    // 5️⃣ Queue assignment
     const lastInQueue = await Appointment.findOne({
       doctor: doctorId,
-      queueDate: new Date(appointmentDate),
+      queueDate: selectedDate,
+      status: { $ne: "CANCELLED" },
     })
       .sort({ queueNumber: -1 })
       .select("queueNumber");
 
-    const nextQueueNumber = lastInQueue ? lastInQueue.queueNumber + 1 : 1;
+    const nextQueueNumber = lastInQueue
+      ? lastInQueue.queueNumber + 1
+      : 1;
 
+    // 6️⃣ Create appointment
     const appointment = await Appointment.create({
       patient: req.user._id,
       doctor: doctorId,
-      appointmentDate,
+      appointmentDate: selectedDate,
       slotTime,
       status: "PENDING",
       queueNumber: nextQueueNumber,
       queueStatus: "WAITING",
-      queueDate: new Date(appointmentDate),
+      queueDate: selectedDate,
     });
 
-    res.status(201).json({ success: true, appointment });
+    res.status(201).json({
+      success: true,
+      message: "Appointment booked successfully",
+      appointment,
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false });
+    console.error("Book appointment error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to book appointment",
+    });
   }
 };
 
 /* =====================================================
-   RESCHEDULE APPOINTMENT (PATIENT)
+   RESCHEDULE APPOINTMENT
 ===================================================== */
 export const rescheduleAppointment = async (req, res) => {
   try {
@@ -152,39 +242,32 @@ export const rescheduleAppointment = async (req, res) => {
     });
 
     if (!appointment) {
-      return res.status(404).json({ success: false });
-    }
-
-    const dayOfWeek = new Date(appointmentDate).toLocaleDateString("en-US", {
-      weekday: "long",
-    });
-
-    const availability = await DoctorAvailability.find({
-      doctor: appointment.doctor,
-      dayOfWeek,
-      isActive: true,
-    });
-
-    let validSlots = [];
-    availability.forEach((a) => {
-      validSlots.push(...generateSlots(a.startTime, a.endTime, a.slotDuration));
-    });
-
-    if (!validSlots.includes(slotTime)) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: "Slot not available",
+        message: "Appointment not found",
       });
     }
 
-    appointment.appointmentDate = appointmentDate;
+    const selectedDate = new Date(appointmentDate);
+
+    appointment.appointmentDate = selectedDate;
     appointment.slotTime = slotTime;
-    appointment.queueDate = new Date(appointmentDate);
+    appointment.queueDate = selectedDate;
+
     await appointment.save();
 
-    res.json({ success: true, appointment });
+    res.json({
+      success: true,
+      message: "Appointment rescheduled",
+      appointment,
+    });
+
   } catch (error) {
-    res.status(500).json({ success: false });
+    console.error("Reschedule error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reschedule",
+    });
   }
 };
 
@@ -210,7 +293,7 @@ export const getDoctorAppointments = async (req, res) => {
 };
 
 /* =====================================================
-   PATIENT QUEUE POSITION (READ ONLY)
+   PATIENT QUEUE POSITION
 ===================================================== */
 export const getMyQueuePosition = async (req, res) => {
   try {
@@ -256,7 +339,7 @@ export const getMyQueuePosition = async (req, res) => {
 };
 
 /* =====================================================
-   DOCTOR COMPLETES APPOINTMENT & MOVE QUEUE
+   COMPLETE APPOINTMENT (DOCTOR)
 ===================================================== */
 export const completeAppointment = async (req, res) => {
   try {
@@ -265,30 +348,14 @@ export const completeAppointment = async (req, res) => {
     const currentAppointment = await Appointment.findOne({
       _id: id,
       doctor: req.user._id,
-      $or: [
-        { queueStatus: { $ne: "COMPLETED" } },
-        { queueStatus: { $exists: false } },
-        { queueStatus: null },
-      ],
+      status: { $ne: "COMPLETED" },
     });
 
     if (!currentAppointment) {
       return res.status(404).json({
         success: false,
-        message: "Appointment not found or already completed",
+        message: "Appointment not found",
       });
-    }
-
-    // 🔹 SAFETY: Ensure queue is initialized
-    const activeExists = await Appointment.findOne({
-      doctor: req.user._id,
-      queueDate: currentAppointment.queueDate,
-      queueStatus: "IN_PROGRESS",
-    });
-
-    if (!activeExists && currentAppointment.queueNumber === 1) {
-      currentAppointment.queueStatus = "IN_PROGRESS";
-      await currentAppointment.save();
     }
 
     currentAppointment.status = "COMPLETED";
@@ -308,6 +375,7 @@ export const completeAppointment = async (req, res) => {
     }
 
     const io = req.app.get("io");
+
     const roomName = `queue:${req.user._id}:${currentAppointment.queueDate
       .toISOString()
       .split("T")[0]}`;
@@ -321,6 +389,7 @@ export const completeAppointment = async (req, res) => {
       success: true,
       message: "Appointment completed and queue updated",
     });
+
   } catch (error) {
     console.error("Complete appointment error:", error);
     res.status(500).json({
