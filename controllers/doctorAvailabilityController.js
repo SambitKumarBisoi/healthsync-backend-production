@@ -105,19 +105,27 @@ import Appointment from "../models/Appointment.js";
 export const getAvailabilityByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
-    const { date } = req.query;
+const { date } = req.query;
 
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: "Date query parameter is required",
-      });
-    }
+if (!date) {
+  return res.status(400).json({
+    success: false,
+    message: "Date query parameter is required",
+  });
+}
 
-    const selectedDate = new Date(date);
-    const dayName = selectedDate.toLocaleDateString("en-US", {
-      weekday: "long",
-    });
+// FIXED DATE PARSING
+const [year, month, day] = date.split("-");
+
+const selectedDate = new Date(
+  Number(year),
+  Number(month) - 1,
+  Number(day)
+);
+
+const dayName = selectedDate.toLocaleDateString("en-US", {
+  weekday: "long",
+});
 
     // 1️⃣ Get availability for that weekday
     const availability = await DoctorAvailability.find({
