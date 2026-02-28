@@ -13,6 +13,8 @@ import doctorAvailabilityRoutes from "./routes/doctorAvailabilityRoutes.js";
 import appointmentRoutes from "./routes/appointmentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 
+import ticketRoutes from "./routes/ticketRoutes.js";
+
 /* ================= ENV CONFIG ================= */
 dotenv.config();
 console.log("BASE_URL:", process.env.BASE_URL);
@@ -96,6 +98,9 @@ app.use("/api/protected", protectedRoutes);
 
 /** Admin Routes */
 app.use("/api/admin", adminRoutes);
+
+/* Ticket Routes */
+app.use("/api/tickets", ticketRoutes);
 
 /* ================= SOCKET.IO ================= */
 
