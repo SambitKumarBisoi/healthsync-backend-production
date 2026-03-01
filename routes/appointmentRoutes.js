@@ -22,6 +22,15 @@ router.put(
   authorizeRoles("patient"),
   rescheduleAppointment
 );
+
+// 🔥 ADD THIS ROUTE (Missing earlier)
+router.get(
+  "/my",
+  protect,
+  authorizeRoles("patient"),
+  getMyAppointments
+);
+
 /**
  * Patient views own queue position
  */
