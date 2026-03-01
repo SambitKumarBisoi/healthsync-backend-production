@@ -72,12 +72,11 @@ router.patch(
 /**
  * Patient views doctor availability
  */
-router.post(
-  "/availability",
+router.get(
+  "/doctors/:doctorId/availability",
   protect,
-  authorizeRoles("doctor"),
-  allowOnlyActiveDoctor,
-  createAvailability
+  authorizeRoles("patient"),
+  getAvailabilityByDoctor
 );
 
 export default router;
