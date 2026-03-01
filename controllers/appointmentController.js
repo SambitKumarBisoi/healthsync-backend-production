@@ -211,6 +211,16 @@ export const bookAppointment = async (req, res) => {
       queueStatus: "WAITING",
       queueDate: selectedDate,
     });
+    // 🔥 REAL-TIME SLOT BOOKED EVENT
+    const io = req.app.get("io");
+
+    const roomName = `queue:${doctorId}:${appointmentDate}`;
+
+    io.to(roomName).emit("slotBooked", {
+      doctorId,
+      appointmentDate,
+      slotTime,
+    });
 
     res.status(201).json({
       success: true,
