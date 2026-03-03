@@ -1,16 +1,17 @@
 import express from "express";
 import {
+  getAdminDashboard,
   getAllDoctors,
   approveDoctor,
   rejectDoctor,
   suspendDoctor,
 } from "../controllers/adminController.js";
+
 import { protect, authorizeRoles } from "../middlewares/authMiddleware.js";
-import { getAdminDashboard } from "../controllers/adminController.js";
 
 const router = express.Router();
 
-/*admin routes */
+/* ================= ADMIN DASHBOARD ================= */
 router.get(
   "/dashboard",
   protect,
@@ -18,12 +19,7 @@ router.get(
   getAdminDashboard
 );
 
-
-
-/**
- * GET ALL DOCTORS
- * Only admin
- */
+/* ================= DOCTOR MANAGEMENT ================= */
 router.get(
   "/doctors",
   protect,
@@ -31,9 +27,6 @@ router.get(
   getAllDoctors
 );
 
-/**
- * APPROVE DOCTOR
- */
 router.patch(
   "/doctors/:id/approve",
   protect,
@@ -41,9 +34,6 @@ router.patch(
   approveDoctor
 );
 
-/**
- * REJECT DOCTOR
- */
 router.patch(
   "/doctors/:id/reject",
   protect,
@@ -51,9 +41,6 @@ router.patch(
   rejectDoctor
 );
 
-/**
- * SUSPEND DOCTOR
- */
 router.patch(
   "/doctors/:id/suspend",
   protect,

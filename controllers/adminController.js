@@ -6,28 +6,62 @@ import Appointment from "../models/Appointment.js";
  */
 export const getAdminDashboard = async (req, res) => {
   try {
+    /* ================= DOCTOR STATS ================= */
+
     const totalDoctors = await User.countDocuments({ role: "doctor" });
+
     const activeDoctors = await User.countDocuments({
       role: "doctor",
       accountStatus: "ACTIVE",
     });
+
     const pendingDoctors = await User.countDocuments({
       role: "doctor",
       accountStatus: "PENDING_VERIFICATION",
     });
+
     const suspendedDoctors = await User.countDocuments({
       role: "doctor",
       accountStatus: "SUSPENDED",
     });
 
+    /* ================= PATIENT STATS ================= */
+
+    const totalPatients = await User.countDocuments({
+      role: "patient",
+    });
+
+    /* ================= APPOINTMENT STATS ================= */
+
     const totalAppointments = await Appointment.countDocuments();
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Today range (00:00 to 23:59)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
     const todayAppointments = await Appointment.countDocuments({
-      appointmentDate: { $gte: today },
+      appointmentDate: {
+        $gte: todayStart,
+        $lte: todayEnd,
+      },
     });
+
+    const completedAppointments = await Appointment.countDocuments({
+      status: "COMPLETED",
+    });
+
+    const pendingAppointments = await Appointment.countDocuments({
+      status: "PENDING",
+    });
+
+    const cancelledAppointments = await Appointment.countDocuments({
+      status: "CANCELLED",
+    });
+
+    /* ================= RESPONSE ================= */
 
     res.status(200).json({
       success: true,
@@ -38,9 +72,15 @@ export const getAdminDashboard = async (req, res) => {
           pending: pendingDoctors,
           suspended: suspendedDoctors,
         },
+        patients: {
+          total: totalPatients,
+        },
         appointments: {
           total: totalAppointments,
           today: todayAppointments,
+          completed: completedAppointments,
+          pending: pendingAppointments,
+          cancelled: cancelledAppointments,
         },
       },
     });
@@ -95,11 +135,8 @@ export const approveDoctor = async (req, res) => {
       });
     }
 
-    await User.findByIdAndUpdate(
-      id,
-      { accountStatus: "ACTIVE" },
-      { new: true }
-    );
+    doctor.accountStatus = "ACTIVE";
+    await doctor.save();
 
     res.status(200).json({
       success: true,
@@ -133,11 +170,8 @@ export const rejectDoctor = async (req, res) => {
       });
     }
 
-    await User.findByIdAndUpdate(
-      id,
-      { accountStatus: "REJECTED" },
-      { new: true }
-    );
+    doctor.accountStatus = "REJECTED";
+    await doctor.save();
 
     res.status(200).json({
       success: true,
@@ -171,11 +205,8 @@ export const suspendDoctor = async (req, res) => {
       });
     }
 
-    await User.findByIdAndUpdate(
-      id,
-      { accountStatus: "SUSPENDED" },
-      { new: true }
-    );
+    doctor.accountStatus = "SUSPENDED";
+    await doctor.save();
 
     res.status(200).json({
       success: true,
