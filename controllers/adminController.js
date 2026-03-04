@@ -1,11 +1,14 @@
 import User from "../models/User.js";
 import Appointment from "../models/Appointment.js";
+import Transaction from "../models/Transaction.js";
 
 /**
  * ADMIN DASHBOARD SUMMARY
  */
 export const getAdminDashboard = async (req, res) => {
   try {
+    const { start, end } = req.query;
+
     /* ================= DOCTOR STATS ================= */
 
     const totalDoctors = await User.countDocuments({ role: "doctor" });
@@ -31,11 +34,38 @@ export const getAdminDashboard = async (req, res) => {
       role: "patient",
     });
 
-    /* ================= APPOINTMENT STATS ================= */
+    /* ================= APPOINTMENT FILTER ================= */
 
-    const totalAppointments = await Appointment.countDocuments();
+    let appointmentFilter = {};
 
-    // Today range (00:00 to 23:59)
+    if (start && end) {
+      appointmentFilter.createdAt = {
+        $gte: new Date(start),
+        $lte: new Date(end),
+      };
+    }
+
+    const totalAppointments = await Appointment.countDocuments(
+      appointmentFilter
+    );
+
+    const completedAppointments = await Appointment.countDocuments({
+      ...appointmentFilter,
+      status: "COMPLETED",
+    });
+
+    const pendingAppointments = await Appointment.countDocuments({
+      ...appointmentFilter,
+      status: "PENDING",
+    });
+
+    const cancelledAppointments = await Appointment.countDocuments({
+      ...appointmentFilter,
+      status: "CANCELLED",
+    });
+
+    /* ================= TODAY APPOINTMENTS ================= */
+
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -49,17 +79,40 @@ export const getAdminDashboard = async (req, res) => {
       },
     });
 
-    const completedAppointments = await Appointment.countDocuments({
-      status: "COMPLETED",
-    });
+    /* ================= REVENUE ANALYTICS ================= */
 
-    const pendingAppointments = await Appointment.countDocuments({
-      status: "PENDING",
-    });
+    let revenueFilter = { status: "PAID" };
 
-    const cancelledAppointments = await Appointment.countDocuments({
-      status: "CANCELLED",
-    });
+    if (start && end) {
+      revenueFilter.createdAt = {
+        $gte: new Date(start),
+        $lte: new Date(end),
+      };
+    }
+
+    const transactions = await Transaction.find(revenueFilter);
+
+    const totalRevenue = transactions.reduce(
+      (sum, txn) => sum + txn.totalAmount,
+      0
+    );
+
+    const todayRevenueData = await Transaction.aggregate([
+      {
+        $match: {
+          status: "PAID",
+          createdAt: { $gte: todayStart, $lte: todayEnd },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$totalAmount" },
+        },
+      },
+    ]);
+
+    const todayRevenue = todayRevenueData[0]?.total || 0;
 
     /* ================= RESPONSE ================= */
 
@@ -81,6 +134,10 @@ export const getAdminDashboard = async (req, res) => {
           completed: completedAppointments,
           pending: pendingAppointments,
           cancelled: cancelledAppointments,
+        },
+        revenue: {
+          total: totalRevenue,
+          today: todayRevenue,
         },
       },
     });
