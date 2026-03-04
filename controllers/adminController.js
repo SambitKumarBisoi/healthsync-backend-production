@@ -195,10 +195,14 @@ export const approveDoctor = async (req, res) => {
     doctor.accountStatus = "ACTIVE";
     await doctor.save();
 
+    const io = req.app.get("io");
+    io.emit("adminDashboardUpdate");
+
     res.status(200).json({
       success: true,
       message: "Doctor approved successfully",
     });
+
   } catch (error) {
     console.error("Approve doctor error:", error);
     res.status(500).json({
@@ -230,10 +234,14 @@ export const rejectDoctor = async (req, res) => {
     doctor.accountStatus = "REJECTED";
     await doctor.save();
 
+    const io = req.app.get("io");
+    io.emit("adminDashboardUpdate");
+
     res.status(200).json({
       success: true,
       message: "Doctor rejected",
     });
+
   } catch (error) {
     console.error("Reject doctor error:", error);
     res.status(500).json({
@@ -265,10 +273,14 @@ export const suspendDoctor = async (req, res) => {
     doctor.accountStatus = "SUSPENDED";
     await doctor.save();
 
+    const io = req.app.get("io");
+    io.emit("adminDashboardUpdate");
+
     res.status(200).json({
       success: true,
       message: "Doctor suspended",
     });
+
   } catch (error) {
     console.error("Suspend doctor error:", error);
     res.status(500).json({

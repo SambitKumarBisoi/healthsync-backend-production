@@ -212,15 +212,18 @@ export const bookAppointment = async (req, res) => {
       queueDate: selectedDate,
     });
     // 🔥 REAL-TIME SLOT BOOKED EVENT
-    const io = req.app.get("io");
+   const io = req.app.get("io");
 
-    const roomName = `queue:${doctorId}:${appointmentDate}`;
+const roomName = `queue:${doctorId}:${appointmentDate}`;
 
-    io.to(roomName).emit("slotBooked", {
-      doctorId,
-      appointmentDate,
-      slotTime,
-    });
+io.to(roomName).emit("slotBooked", {
+  doctorId,
+  appointmentDate,
+  slotTime,
+});
+
+/* 🔥 ADMIN REAL TIME DASHBOARD UPDATE */
+io.emit("adminDashboardUpdate");
 
     res.status(201).json({
       success: true,
