@@ -11,60 +11,70 @@ import { captchaStore } from "../utils/captcha.js";
  */
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, phone, securityPin } = req.body;
+    let { name, email, password, role, phone, securityPin } = req.body;
+
+    // normalize values
+    name = name?.trim();
+    email = email?.trim().toLowerCase();
+    phone = phone?.trim();
 
     if (!name || !email || !password || !phone || !securityPin) {
       return res.status(400).json({
-        message: "All required fields must be provided",
+        success: false,
+        message: "Name, email, password, phone and security PIN are required",
       });
     }
 
     const existingUser = await User.findOne({ email });
+
     if (existingUser) {
       return res.status(409).json({
+        success: false,
         message: "User already exists with this email",
       });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const selectedRole = role ? role.toLowerCase() : "patient";
+
+    // doctor PIN check
+    if (selectedRole === "doctor") {
+      if (securityPin !== process.env.DOCTOR_PIN) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid Doctor security PIN",
+        });
+      }
+    }
+
+    // admin PIN check
+    if (selectedRole === "admin") {
+      if (securityPin !== process.env.ADMIN_PIN) {
+        return res.status(403).json({
+          success: false,
+          message: "Invalid Admin security PIN",
+        });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const emailVerificationToken = crypto.randomBytes(32).toString("hex");
+
     const emailVerificationTokenExpires = Date.now() + 15 * 60 * 1000;
-const selectedRole = role ? role.toLowerCase() : "patient";
 
-if (selectedRole === "doctor") {
-  if (securityPin !== process.env.DOCTOR_PIN) {
-    return res.status(403).json({
-      message: "Invalid Doctor security PIN",
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role: selectedRole,
+      phone,
+      emailVerificationToken,
+      emailVerificationTokenExpires,
+      emailVerified: false,
     });
-  }
-}
 
-if (selectedRole === "admin") {
-  if (securityPin !== process.env.ADMIN_PIN) {
-    return res.status(403).json({
-      message: "Invalid Admin security PIN",
-    });
-  }
-}
-
-const user = await User.create({
-  name,
-  email,
-  password: hashedPassword,
-  role: selectedRole,
-  phone,
-  emailVerificationToken,
-  emailVerificationTokenExpires,
-  emailVerified: false,
-});
-
-console.log("REGISTER HIT ON:", process.env.BASE_URL);
-
-const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
-
-
+    const verificationLink =
+      `${process.env.BASE_URL}/api/auth/verify-email?token=${emailVerificationToken}`;
 
     await sendEmail({
       to: user.email,
@@ -77,13 +87,17 @@ const verificationLink = `${process.env.BASE_URL}/api/auth/verify-email?token=${
       `,
     });
 
-    res.status(201).json({
+    return res.status(201).json({
+      success: true,
       message: "Registration successful. Verification email sent.",
     });
+
   } catch (error) {
     console.error("Registration error:", error);
-    res.status(500).json({
-      message: "Server error during registration",
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
