@@ -48,23 +48,5 @@ router.patch(
   suspendDoctor
 );
 
-/* ================= SOCKET TEST ROUTE ================= */
-/* This route triggers realtime dashboard update */
-
-router.get(
-  "/socket-test",
-  protect,
-  authorizeRoles("admin"),
-  (req, res) => {
-    const io = req.app.get("io");
-
-    io.emit("adminDashboardUpdate");
-
-    res.json({
-      success: true,
-      message: "Socket test event triggered",
-    });
-  }
-);
 
 export default router;
